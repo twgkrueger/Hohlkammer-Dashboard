@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Optional: Repository fest eintragen, falls die automatische Erkennung nicht passt -->
+<!-- <meta name="github-repo" content="twgkrueger/hohlkammer-dashboard"> -->
+<title>Hohlkammer Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column, header like a fluted PP sheet, then ranking → history → raw data */
+:root{
+  --bg:#eef1f3; --sheet:#ffffff; --fg:#1b2329; --muted:#5d6a73; --line:#d5dce1; --flute:rgba(27,35,41,.045);
+  --accent:#0b6e8a; --good:#1d7a4c; --bad:#b4372b;
+  --c-fla:#c8322b; --c-wmd:#2563a8; --c-sax:#e07a14; --c-dn:#7b4bb7; --c-h2p:#138a72; --c-wps:#8a6d1f;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12171b; --sheet:#1a2126; --fg:#e4eaee; --muted:#93a1ab; --line:#2c363d; --flute:rgba(228,234,238,.035);
+  --accent:#4fb3cf; --good:#4cc38a; --bad:#ef7a6e; --c-fla:#ef6a62; --c-wmd:#6ea6e8; --c-sax:#f5a14a; --c-dn:#b28ae6; --c-h2p:#3ec6a6; --c-wps:#d1b25a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171b; --sheet:#1a2126; --fg:#e4eaee; --muted:#93a1ab; --line:#2c363d; --flute:rgba(228,234,238,.035);
+  --accent:#4fb3cf; --good:#4cc38a; --bad:#ef7a6e; --c-fla:#ef6a62; --c-wmd:#6ea6e8; --c-sax:#f5a14a; --c-dn:#b28ae6; --c-h2p:#3ec6a6; --c-wps:#d1b25a; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body)}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:24px 48px;display:flex;flex-direction:column;gap:28px}
+
+header.sheet{background:var(--sheet) repeating-linear-gradient(90deg,transparent 0 9px,var(--flute) 9px 10px);
+  border:1px solid var(--line);border-radius:6px;padding:22px 22px 18px;display:flex;flex-direction:column;gap:14px;position:relative}
+header .holes{position:absolute;top:8px;left:22px;right:22px;display:flex;justify-content:space-between;pointer-events:none}
+header .holes i{width:8px;height:4px;border-radius:0 0 8px 8px;background:var(--bg);border:1px solid var(--line);border-top:0}
+h1{font-family:var(--f-display);font-stretch:78%;font-weight:800;font-size:clamp(30px,6vw,46px);line-height:1;margin:6px 0 0;letter-spacing:-.01em;text-wrap:balance}
+.spec{display:flex;flex-wrap:wrap;gap:6px}
+.spec span{font:500 12px/1 var(--f-mono);padding:6px 8px;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between}
+.stand{font-size:13px;color:var(--muted)}
+.stand b{color:var(--fg);font-weight:600}
+
+.controls{display:flex;flex-wrap:wrap;gap:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--sheet)}
+.seg button{font:600 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:9px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--sheet)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+h2{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:20px;margin:0;letter-spacing:.005em}
+.label{font:500 11px/1 var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+
+.rank{display:flex;flex-direction:column;gap:10px;list-style:none;margin:0;padding:0}
+.rank li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 14px;background:var(--sheet);border:1px solid var(--line);border-radius:5px}
+.rank li.best{border-color:var(--good)}
+.pos{font:700 18px/1 var(--f-display);font-stretch:80%;color:var(--muted);grid-row:span 2}
+.rank li.best .pos{color:var(--good)}
+.who{min-width:0;display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline}
+.who strong{font-weight:600}
+.who small{color:var(--muted);font-size:13px}
+.price{text-align:right;font:500 17px/1.1 var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.price small{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+.bar{grid-column:2/4;height:8px;background:var(--bg);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:2px}
+.tags{grid-column:2/4;display:flex;flex-wrap:wrap;gap:6px;font:12px/1 var(--f-body)}
+.tag{padding:4px 7px;border-radius:3px;background:var(--bg);color:var(--muted)}
+.tag.up{color:var(--bad)} .tag.down{color:var(--good)} .tag.best{background:var(--good);color:var(--sheet);font-weight:600}
+.tag.note{background:transparent;border:1px solid var(--line);color:var(--fg)}
+.na{display:flex;flex-direction:column;gap:6px;margin:0;padding:12px 14px;list-style:none;border:1px dashed var(--line);border-radius:5px;font-size:13px;color:var(--muted)}
+.na strong{color:var(--fg);font-weight:600}
+a{color:var(--accent)}
+
+.chart-box{background:var(--sheet);border:1px solid var(--line);border-radius:5px;padding:14px;overflow-x:auto}
+.chart-box svg{display:block;width:100%;min-width:520px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:3px;border-radius:2px;display:inline-block}
+.hint{font-size:13px;color:var(--muted);margin:0}
+
+.table-box{overflow-x:auto;background:var(--sheet);border:1px solid var(--line);border-radius:5px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:13px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font:500 11px/1 var(--f-body);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+
+.empty{background:var(--sheet);border:1px dashed var(--line);border-radius:5px;padding:28px 20px;color:var(--muted);text-align:left}
+.empty b{color:var(--fg)}
+footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-width:68ch}
+@media (max-width:520px){.rank li{grid-template-columns:22px minmax(0,1fr)}.price{grid-column:2;text-align:left}.bar,.tags{grid-column:2}}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s ease}}
+
+.btn{font:600 13px/1 var(--f-body);padding:9px 14px;border-radius:4px;border:1px solid var(--accent);color:var(--accent);background:var(--sheet);text-decoration:none;white-space:nowrap}
+.btn:hover{background:var(--accent);color:var(--sheet)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="sheet">
+    <div class="holes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    <span class="label">Preisvergleich Hohlkammerplakate</span>
+    <h1>Hohlkammer Dashboard</h1>
+    <div class="spec" aria-label="Vergleichskonfiguration">
+      <span>DIN A1 · 594 × 841 mm</span><span>10 Lochbohrungen</span><span>einseitig 4/0</span><span>Standardlieferung</span><span>inkl. Versand DE</span>
+    </div>
+    <div class="meta">
+      <div class="stand" id="stand">Preise werden geladen …</div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Auflage">
+          <button data-qty="1">1 Stk.</button><button data-qty="100" aria-pressed="true">100</button><button data-qty="1000">1.000</button><button data-qty="10000">10.000</button>
+        </div>
+        <a class="btn" id="refresh" hidden target="_blank" rel="noopener" title="Öffnet GitHub. Dort auf „Run workflow“ klicken (nur für Repo-Inhaber).">Preise aktualisieren ↗</a>
+        <div class="seg" role="group" aria-label="Preisart">
+          <button id="mnet" data-mode="net" aria-pressed="true">netto</button><button id="mgross" data-mode="gross">brutto</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-rank">
+    <div class="sec-head"><h2 id="h-rank">Aktuelles Ranking</h2><span class="label" id="rank-sub"></span></div>
+    <ol class="rank" id="rank"></ol>
+    <ul class="na" id="na" hidden></ul>
+    <div class="empty" id="empty" hidden></div>
+  </section>
+
+  <section aria-labelledby="h-hist">
+    <div class="sec-head"><h2 id="h-hist">Preisverlauf</h2><span class="label" id="hist-sub"></span></div>
+    <div class="chart-box" id="chart"></div>
+    <div class="legend" id="legend"></div>
+    <p class="hint" id="hist-hint" hidden>Der Verlauf füllt sich mit jeder Aktualisierung. Ab dem zweiten Datenstand siehst du hier Linien.</p>
+  </section>
+
+  <section aria-labelledby="h-raw">
+    <div class="sec-head"><h2 id="h-raw">Alle Datenstände</h2></div>
+    <div class="table-box"><table><thead><tr><th>Datum</th><th>Shop</th><th>Material</th><th class="num">Stück</th><th class="num">netto</th><th class="num">brutto</th><th class="num">je Stück</th></tr></thead><tbody id="raw"></tbody></table></div>
+  </section>
+
+  <footer>
+    <span>Shops: Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print und wahlplakatshop. Alle Preise inklusive Standardversand innerhalb Deutschlands, ohne Gutscheine, Kundenrabatte oder Kabelbinder. Abweichungen von der Vergleichskonfiguration stehen als Hinweis am jeweiligen Angebot.</span>
+    <span>Die Preise werden jeden Morgen automatisch per GitHub Action abgefragt. Über „Preise aktualisieren“ lässt sich die Abfrage zusätzlich von Hand starten; nach etwa zwei Minuten erscheint der neue Stand hier.</span>
+  </footer>
+</div>
+
+<script>
+const SHOPS={fla:{name:"Flyeralarm",color:"var(--c-fla)"},wmd:{name:"WIRmachenDRUCK",color:"var(--c-wmd)"},sax:{name:"Saxoprint",color:"var(--c-sax)"},
+  dn:{name:"Drucknische",color:"var(--c-dn)"},h2p:{name:"highway2print",color:"var(--c-h2p)"},wps:{name:"wahlplakatshop",color:"var(--c-wps)"}};
+const qtyLabel=n=>n.toLocaleString("de-DE")+" Stück";
+const state={snaps:[],qty:100,mode:"net",status:"loading"};
+const eur=v=>v.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
+const fmtDate=d=>new Date(d+"T12:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});
+const key=i=>i.shop+"|"+i.material;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function setPressed(){
+  document.querySelectorAll("[data-qty]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.qty===state.qty));
+  $("mnet").setAttribute("aria-pressed",state.mode==="net");$("mgross").setAttribute("aria-pressed",state.mode==="gross");
+}
+document.querySelectorAll("[data-qty]").forEach(b=>b.addEventListener("click",()=>{state.qty=+b.dataset.qty;render()}));
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{state.mode=b.dataset.mode;render()}));
+
+function render(){
+  setPressed();
+  const snaps=state.snaps, latest=snaps[snaps.length-1], prev=snaps[snaps.length-2];
+  const empty=$("empty");
+  if(!latest){
+    $("rank").innerHTML="";$("chart").innerHTML="";$("legend").innerHTML="";$("raw").innerHTML="";$("na").hidden=true;
+    empty.hidden=false;
+    empty.innerHTML=state.status==="nodb"
+      ? "<b>Preisdaten konnten nicht geladen werden.</b> Die Datei data/prices.json fehlt oder ist nicht erreichbar. Lade die Seite in ein paar Minuten neu."
+      : state.status==="loading" ? "<b>Preise werden geladen …</b>"
+      : "<b>Noch keine Preise gespeichert.</b> Sobald Claude die Shops abgefragt hat, erscheinen hier Ranking, Verlauf und alle Datenstände.";
+    $("stand").textContent=state.status==="loading"?"Preise werden geladen …":"Noch kein Datenstand";
+    return;
+  }
+  empty.hidden=true;
+  const p=i=>i[state.mode];
+  $("stand").innerHTML=`Stand: <b>${fmtDate(latest.date)}${latest.updated?", "+new Date(latest.updated).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" Uhr":""}</b> · ${snaps.length} Datenstand${snaps.length>1?"e":""} gespeichert`;
+
+  // Ranking
+  const offers=latest.items.filter(i=>i.qty===state.qty).sort((a,b)=>p(a)-p(b));
+  const max=Math.max(...offers.map(p)), min=offers.length?p(offers[0]):0;
+  $("rank-sub").textContent=`${qtyLabel(state.qty)} · ${state.mode==="net"?"netto":"brutto"}`;
+  const na=[...(latest.errors||[]).map(e=>({shop:e.shop,reason:"Abruf fehlgeschlagen, angezeigt wird der letzte bekannte Preis"})),...(latest.unavailable||[]).filter(u=>u.qty===state.qty)];
+  $("na").hidden=!na.length;
+  $("na").innerHTML=na.length?`<li class="label">Hinweise für ${qtyLabel(state.qty)}</li>`+na.map(u=>`<li><strong>${esc(SHOPS[u.shop]?.name||u.shop)}</strong> · ${esc(u.reason)}</li>`).join(""):"";
+  $("rank").innerHTML=offers.map((o,idx)=>{
+    const before=prev&&prev.items.find(x=>key(x)===key(o)&&x.qty===o.qty);
+    let change="";
+    if(before){const d=p(o)-p(before);
+      change=Math.abs(d)<0.005?`<span class="tag">unverändert seit ${fmtDate(prev.date)}</span>`
+        :`<span class="tag ${d>0?"up":"down"}">${d>0?"▲ +":"▼ "}${eur(d).replace("-","−")} seit ${fmtDate(prev.date)}</span>`;}
+    const diff=idx===0?`<span class="tag best">günstigstes Angebot</span>`:`<span class="tag">+${eur(p(o)-min)} (+${((p(o)/min-1)*100).toFixed(1).replace(".",",")} %)</span>`;
+    return `<li class="${idx===0?"best":""}">
+      <span class="pos">${idx+1}</span>
+      <div class="who"><strong>${esc(SHOPS[o.shop]?.name||o.shop)}</strong><small>${esc(o.material)}</small>${o.url?`<small><a href="${esc(o.url)}" target="_blank" rel="noopener">zum Shop</a></small>`:""}</div>
+      <div class="price">${eur(p(o))}<small>${eur(p(o)/o.qty)} je Stück</small></div>
+      <div class="bar" aria-hidden="true"><i style="width:${(p(o)/max*100).toFixed(1)}%;background:${SHOPS[o.shop]?.color||"var(--accent)"}"></i></div>
+      <div class="tags">${diff}${change}${(o.notes||[]).map(n=>`<span class="tag note">${esc(n)}</span>`).join("")}</div></li>`;}).join("");
+
+  renderChart(p);
+
+  // Raw table, newest first
+  $("raw").innerHTML=[...snaps].reverse().flatMap(s=>[...s.items].sort((a,b)=>a.qty-b.qty||a.net-b.net).map(i=>
+    `<tr><td>${fmtDate(s.date)}</td><td>${esc(SHOPS[i.shop]?.name||i.shop)}</td><td>${esc(i.material)}</td><td class="num">${i.qty.toLocaleString("de-DE")}</td><td class="num">${eur(i.net)}</td><td class="num">${eur(i.gross)}</td><td class="num">${eur(i[state.mode]/i.qty)}</td></tr>`)).join("");
+}
+
+function renderChart(p){
+  const snaps=state.snaps;
+  const series={};
+  snaps.forEach((s,si)=>s.items.filter(i=>i.qty===state.qty).forEach(i=>{(series[key(i)]??={shop:i.shop,material:i.material,pts:[]}).pts.push([si,p(i)])}));
+  const list=Object.values(series);
+  const vals=list.flatMap(s=>s.pts.map(x=>x[1]));
+  $("hist-sub").textContent=`${qtyLabel(state.qty)} · ${state.mode==="net"?"netto":"brutto"}`;
+  $("hist-hint").hidden=snaps.length>1;
+  if(!vals.length){$("chart").innerHTML="";return}
+  const W=760,H=280,L=96,R=20,T=16,B=36;
+  let lo=Math.min(...vals),hi=Math.max(...vals);const pad=(hi-lo)*0.12||hi*0.05;lo=Math.max(0,lo-pad);hi=hi+pad;
+  const n=snaps.length;
+  const x=i=>n===1?L+(W-L-R)/2:L+i*(W-L-R)/(n-1);
+  const y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+  const step=niceStep((hi-lo)/4);const ticks=[];for(let t=Math.ceil(lo/step)*step;t<=hi+1e-9;t+=step)ticks.push(t);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Preisverlauf je Angebot">`;
+  ticks.forEach(t=>{svg+=`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${y(t)+4}" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--muted)">${eur(t).replace(",00","")}</text>`});
+  const every=Math.max(1,Math.ceil(n/8));
+  snaps.forEach((s,i)=>{if(i%every===0||i===n-1)svg+=`<text x="${x(i)}" y="${H-12}" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="11" fill="var(--muted)">${fmtDate(s.date).slice(0,6)}</text>`});
+  const dashes=["","6 4","2 4"];const used={};
+  list.forEach(s=>{
+    const c=SHOPS[s.shop]?.color||"var(--accent)";const d=dashes[(used[s.shop]=(used[s.shop]??-1)+1)%3];s.dash=d;
+    if(s.pts.length>1)svg+=`<polyline fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round" ${d?`stroke-dasharray="${d}"`:""} points="${s.pts.map(([i,v])=>x(i)+","+y(v)).join(" ")}"/>`;
+    const [li,lv]=s.pts[s.pts.length-1];
+    svg+=`<circle cx="${x(li)}" cy="${y(lv)}" r="4.5" fill="${c}" stroke="var(--sheet)" stroke-width="2"><title>${esc(SHOPS[s.shop]?.name)} · ${esc(s.material)}: ${eur(lv)}</title></circle>`;
+  });
+  $("chart").innerHTML=svg+"</svg>";
+  $("legend").innerHTML=list.map(s=>`<span><i style="background:${SHOPS[s.shop]?.color};${s.dash?`background:repeating-linear-gradient(90deg,${SHOPS[s.shop]?.color} 0 ${s.dash==="2 4"?2:6}px,transparent 0 ${s.dash==="2 4"?6:10}px)`:""}"></i>${esc(SHOPS[s.shop]?.name)} · ${esc(s.material)}</span>`).join("");
+}
+function niceStep(raw){const m=Math.pow(10,Math.floor(Math.log10(raw)));const r=raw/m;return (r<=1?1:r<=2?2:r<=5?5:10)*m}
+
+render();
+function repoUrl(){
+  const m=document.querySelector('meta[name="github-repo"]')?.content;
+  if(m) return "https://github.com/"+m;
+  const h=location.hostname;
+  if(h.endsWith(".github.io")){const owner=h.split(".")[0];const seg=location.pathname.split("/").filter(Boolean)[0];
+    const repo=(seg&&!seg.includes("."))?seg:h;return `https://github.com/${owner}/${repo}`;}
+  return null;
+}
+(()=>{const r=repoUrl();const a=$("refresh");if(r){a.href=r+"/actions/workflows/update-prices.yml";a.hidden=false}})();
+fetch("data/prices.json?t="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(j=>{
+  state.snaps=(j.snapshots||[]).filter(d=>d&&d.date&&Array.isArray(d.items)).sort((a,b)=>a.date.localeCompare(b.date));
+  state.status="ready";render();
+}).catch(()=>{state.status="nodb";render()});
+</script>
+</body>
+</html>
