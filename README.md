@@ -2,7 +2,7 @@
 
 Preisvergleich für Hohlkammerplakate **DIN A1, 10 Lochbohrungen, einseitig 4/0** bei sechs Online-Druckereien:
 Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print und wahlplakatshop.
-Auflagen: 1, 100, 1.000 und 10.000 Stück. Alle Preise inklusive Standardversand innerhalb Deutschlands.
+Auflagen: 1, 100, 500, 1.000 und 10.000 Stück. Alle Preise inklusive Standardversand innerhalb Deutschlands.
 
 ## Aufbau
 

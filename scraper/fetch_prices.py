@@ -20,7 +20,7 @@ import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "data" / "prices.json"
-QTYS = [1, 100, 1000, 10000]
+QTYS = [1, 100, 500, 1000, 10000]
 VAT = 1.19
 TIMEOUT = 30
 
