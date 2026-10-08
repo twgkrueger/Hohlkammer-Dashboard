@@ -256,7 +256,7 @@
   },
   {
    "date": "2026-10-08",
-   "updated": "2026-10-08T05:24:40+00:00",
+   "updated": "2026-10-08T05:31:21+00:00",
    "items": [
     {
      "shop": "fla",
@@ -548,6 +548,46 @@
      "net": 1510.0,
      "gross": 1796.9,
      "url": "https://www.wahlplakatshop.de/product/hohlkammerplakate-a1/"
+    },
+    {
+     "shop": "jjb",
+     "material": "PP-Wellenstrukturplatte 3 mm",
+     "qty": 1,
+     "net": 19.5,
+     "gross": 23.21,
+     "url": "https://www.jajabo.de/wahlplakate.htm"
+    },
+    {
+     "shop": "jjb",
+     "material": "PP-Wellenstrukturplatte 3 mm",
+     "qty": 100,
+     "net": 227.5,
+     "gross": 270.73,
+     "url": "https://www.jajabo.de/wahlplakate.htm"
+    },
+    {
+     "shop": "jjb",
+     "material": "PP-Wellenstrukturplatte 3 mm",
+     "qty": 500,
+     "net": 1105.0,
+     "gross": 1314.95,
+     "url": "https://www.jajabo.de/wahlplakate.htm"
+    },
+    {
+     "shop": "jjb",
+     "material": "PP-Wellenstrukturplatte 3 mm",
+     "qty": 1000,
+     "net": 1872.0,
+     "gross": 2227.68,
+     "url": "https://www.jajabo.de/wahlplakate.htm"
+    },
+    {
+     "shop": "jjb",
+     "material": "PP-Wellenstrukturplatte 3 mm",
+     "qty": 10000,
+     "net": 16900.0,
+     "gross": 20111.0,
+     "url": "https://www.jajabo.de/wahlplakate.htm"
     }
    ],
    "unavailable": [
