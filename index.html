@@ -185,7 +185,7 @@ function render(){
   }
   empty.hidden=true;
   const p=i=>i[state.mode];
-  $("stand").innerHTML=`Stand: <b>${fmtDate(latest.date)}${latest.updated?", "+new Date(latest.updated).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" Uhr":""}</b> · ${snaps.length} Datenstand${snaps.length>1?"e":""} gespeichert`;
+  $("stand").innerHTML=`Stand: <b>${fmtDate(latest.date)}${latest.updated?", "+new Date(latest.updated).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" Uhr":""}</b> · ${snaps.length} ${snaps.length>1?"Datenstände":"Datenstand"} gespeichert`;
 
   // Ranking
   const offers=latest.items.filter(i=>i.qty===state.qty).sort((a,b)=>p(a)-p(b));
