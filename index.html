@@ -14,7 +14,7 @@
 :root{
   --bg:#eef1f3; --sheet:#ffffff; --fg:#1b2329; --muted:#5d6a73; --line:#d5dce1; --flute:rgba(27,35,41,.045);
   --accent:#0b6e8a; --good:#1d7a4c; --bad:#b4372b;
-  --c-fla:#c8322b; --c-wmd:#2563a8; --c-sax:#e07a14; --c-dn:#7b4bb7; --c-h2p:#138a72; --c-wps:#8a6d1f;
+  --c-fla:#c8322b; --c-wmd:#2563a8; --c-sax:#e07a14; --c-dn:#7b4bb7; --c-h2p:#138a72; --c-wps:#8a6d1f; --c-jjb:#c2187a;
   --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -22,10 +22,10 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#12171b; --sheet:#1a2126; --fg:#e4eaee; --muted:#93a1ab; --line:#2c363d; --flute:rgba(228,234,238,.035);
-  --accent:#4fb3cf; --good:#4cc38a; --bad:#ef7a6e; --c-fla:#ef6a62; --c-wmd:#6ea6e8; --c-sax:#f5a14a; --c-dn:#b28ae6; --c-h2p:#3ec6a6; --c-wps:#d1b25a; color-scheme:dark}}
+  --accent:#4fb3cf; --good:#4cc38a; --bad:#ef7a6e; --c-fla:#ef6a62; --c-wmd:#6ea6e8; --c-sax:#f5a14a; --c-dn:#b28ae6; --c-h2p:#3ec6a6; --c-wps:#d1b25a; --c-jjb:#f06aae; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#12171b; --sheet:#1a2126; --fg:#e4eaee; --muted:#93a1ab; --line:#2c363d; --flute:rgba(228,234,238,.035);
-  --accent:#4fb3cf; --good:#4cc38a; --bad:#ef7a6e; --c-fla:#ef6a62; --c-wmd:#6ea6e8; --c-sax:#f5a14a; --c-dn:#b28ae6; --c-h2p:#3ec6a6; --c-wps:#d1b25a; color-scheme:dark}
+  --accent:#4fb3cf; --good:#4cc38a; --bad:#ef7a6e; --c-fla:#ef6a62; --c-wmd:#6ea6e8; --c-sax:#f5a14a; --c-dn:#b28ae6; --c-h2p:#3ec6a6; --c-wps:#d1b25a; --c-jjb:#f06aae; color-scheme:dark}
 
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -146,14 +146,14 @@ footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:
   </section>
 
   <footer>
-    <span>Shops: Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print und wahlplakatshop. Alle Preise inklusive Standardversand innerhalb Deutschlands, ohne Gutscheine, Kundenrabatte oder Kabelbinder. Abweichungen von der Vergleichskonfiguration stehen als Hinweis am jeweiligen Angebot.</span>
+    <span>Shops: Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print, wahlplakatshop und jajabo. Alle Preise inklusive Standardversand innerhalb Deutschlands, ohne Gutscheine, Kundenrabatte oder Kabelbinder. Abweichungen von der Vergleichskonfiguration stehen als Hinweis am jeweiligen Angebot.</span>
     <span>Die Preise werden jeden Morgen automatisch per GitHub Action abgefragt. Über „Preise aktualisieren“ lässt sich die Abfrage zusätzlich von Hand starten; nach etwa zwei Minuten erscheint der neue Stand hier.</span>
   </footer>
 </div>
 
 <script>
 const SHOPS={fla:{name:"Flyeralarm",color:"var(--c-fla)"},wmd:{name:"WIRmachenDRUCK",color:"var(--c-wmd)"},sax:{name:"Saxoprint",color:"var(--c-sax)"},
-  dn:{name:"Drucknische",color:"var(--c-dn)"},h2p:{name:"highway2print",color:"var(--c-h2p)"},wps:{name:"wahlplakatshop",color:"var(--c-wps)"}};
+  dn:{name:"Drucknische",color:"var(--c-dn)"},h2p:{name:"highway2print",color:"var(--c-h2p)"},wps:{name:"wahlplakatshop",color:"var(--c-wps)"},jjb:{name:"jajabo",color:"var(--c-jjb)"}};
 const qtyLabel=n=>n.toLocaleString("de-DE")+" Stück";
 const state={snaps:[],qty:100,mode:"net",status:"loading"};
 const eur=v=>v.toLocaleString("de-DE",{style:"currency",currency:"EUR"});

@@ -1,7 +1,7 @@
 # Hohlkammer Dashboard
 
-Preisvergleich für Hohlkammerplakate **DIN A1, 10 Lochbohrungen, einseitig 4/0** bei sechs Online-Druckereien:
-Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print und wahlplakatshop.
+Preisvergleich für Hohlkammerplakate **DIN A1, 10 Lochbohrungen, einseitig 4/0** bei sieben Online-Druckereien:
+Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print, wahlplakatshop und jajabo.
 Auflagen: 1, 100, 500, 1.000 und 10.000 Stück. Alle Preise inklusive Standardversand innerhalb Deutschlands.
 
 ## Aufbau
@@ -10,7 +10,7 @@ Auflagen: 1, 100, 500, 1.000 und 10.000 Stück. Alle Preise inklusive Standardve
 |---|---|
 | `index.html` | Die Webseite (Ranking, Preisverlauf, alle Datenstände) |
 | `data/prices.json` | Alle gespeicherten Preise, ein Datenstand pro Tag |
-| `scraper/fetch_prices.py` | Fragt die sechs Shops ab und schreibt `data/prices.json` |
+| `scraper/fetch_prices.py` | Fragt die sieben Shops ab und schreibt `data/prices.json` |
 | `.github/workflows/update-prices.yml` | Startet die Abfrage täglich und auf Knopfdruck |
 
 ## Einrichtung (einmalig)
@@ -32,6 +32,7 @@ Schlägt ein Shop fehl (z. B. weil er seine Seite umgebaut hat), übernimmt das 
 - **Drucknische:** 12-fach statt 10-fach Lochung; Preis wird im Browser berechnet, daher nutzt das Skript Playwright.
 - **highway2print:** Versand kommt extra und wird anhand der Gewichtstabelle des Shops (0,225 kg pro Plakat) hinzugerechnet.
 - **wahlplakatshop:** online 10 bis 5.000 Stück.
+- **jajabo:** Staffelpreise stehen als Tabelle auf der Produktseite, 3 mm Platte, Versand gratis.
 - **Saxoprint:** online höchstens 1.000 Stück. **Flyeralarm:** höchstens 5.000 Stück.
 
 ## Lokal testen (optional)

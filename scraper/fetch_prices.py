@@ -1,4 +1,4 @@
-"""Fragt die Preise für Hohlkammerplakate DIN A1 (10 Bohrungen, 4/0) bei sechs
+"""Fragt die Preise für Hohlkammerplakate DIN A1 (10 Bohrungen, 4/0) bei sieben
 Online-Druckereien ab und schreibt einen Datenstand nach data/prices.json.
 
 Alle Preise sind netto bzw. brutto INKLUSIVE Standardversand innerhalb Deutschlands.
@@ -242,6 +242,33 @@ def fetch_wps():
     return out
 
 
+# ------------------------------------------------------------------------------- jajabo
+JJB_URL = "https://www.jajabo.de/wahlplakate.htm"
+
+
+def fetch_jjb():
+    """Staffelpreistabelle steht statisch im HTML (Format DIN A1 ist voreingestellt)."""
+    r = session.get(JJB_URL, timeout=TIMEOUT)
+    r.raise_for_status()
+    if "DIN A1" not in r.text:
+        raise RuntimeError("Format DIN A1 nicht auf der Seite gefunden")
+    rows = re.findall(
+        r'data-value="(\d+)"[^>]*>\s*<td class="quantity">[^<]*</td>\s*'
+        r'<td class="price_netto">\s*([\d.,]+)\s*EUR</td>\s*'
+        r'<td class="price_brutto">\s*([\d.,]+)\s*EUR</td>',
+        r.text,
+    )
+    prices = {int(q): (de_number(n), de_number(g)) for q, n, g in rows}
+    out = [
+        item("jjb", "PP-Wellenstrukturplatte 3 mm", qty, prices[qty][0], prices[qty][1], JJB_URL)
+        for qty in QTYS
+        if qty in prices
+    ]
+    if not out:
+        raise RuntimeError("Preistabelle nicht gefunden")
+    return out
+
+
 # --------------------------------------------------------------------------------- Main
 SHOPS = {
     "fla": fetch_fla,
@@ -250,6 +277,7 @@ SHOPS = {
     "dn": fetch_dn,
     "h2p": fetch_h2p,
     "wps": fetch_wps,
+    "jjb": fetch_jjb,
 }
 
 UNAVAILABLE = [
