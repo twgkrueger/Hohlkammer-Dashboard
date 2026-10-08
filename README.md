@@ -1,6 +1,6 @@
 # Hohlkammer Dashboard
 
-Preisvergleich für Hohlkammerplakate **DIN A1, 10 Lochbohrungen, einseitig 4/0** bei sieben Online-Druckereien:
+Preisvergleich für Hohlkammerplakate **DIN A1 und DIN A0, 10 Lochbohrungen, einseitig 4/0** bei sieben Online-Druckereien:
 Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print, wahlplakatshop und jajabo.
 Auflagen: 1, 100, 500, 1.000 und 10.000 Stück. Alle Preise inklusive Standardversand innerhalb Deutschlands.
 
@@ -29,9 +29,9 @@ Schlägt ein Shop fehl (z. B. weil er seine Seite umgebaut hat), übernimmt das 
 
 ## Hinweise zu einzelnen Shops
 
-- **Drucknische:** 12-fach statt 10-fach Lochung; Preis wird im Browser berechnet, daher nutzt das Skript Playwright.
-- **highway2print:** Versand kommt extra und wird anhand der Gewichtstabelle des Shops (0,225 kg pro Plakat) hinzugerechnet.
-- **wahlplakatshop:** online 10 bis 5.000 Stück.
+- **Drucknische:** 12-fach statt 10-fach Lochung (A1 und A0); Preis wird im Browser berechnet, daher nutzt das Skript Playwright.
+- **highway2print:** Versand kommt extra und wird anhand der Gewichtstabelle des Shops hinzugerechnet (A1 0,225 kg, A0 0,45 kg pro Plakat). A0 erst ab 2 Stück. Für 10.000 × A0 (4,5 t) reicht die Tabelle nicht, der Versand ist dort geschätzt.
+- **wahlplakatshop:** online 10 bis 5.000 Stück; A0 nur mit 12-fach-Stanzung.
 - **jajabo:** Staffelpreise stehen als Tabelle auf der Produktseite, 3 mm Platte, Versand gratis.
 - **Saxoprint:** online höchstens 1.000 Stück. **Flyeralarm:** höchstens 5.000 Stück.
 

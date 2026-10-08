@@ -85,7 +85,7 @@ a{color:var(--accent)}
 .hint{font-size:13px;color:var(--muted);margin:0}
 
 .table-box{overflow-x:auto;background:var(--sheet);border:1px solid var(--line);border-radius:5px}
-table{border-collapse:collapse;width:100%;min-width:560px;font-size:13px}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:13px}
 th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font:500 11px/1 var(--f-body);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
@@ -110,11 +110,14 @@ footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:
     <span class="label">Preisvergleich Hohlkammerplakate</span>
     <h1>Hohlkammer Dashboard</h1>
     <div class="spec" aria-label="Vergleichskonfiguration">
-      <span>DIN A1 · 594 × 841 mm</span><span>10 Lochbohrungen</span><span>einseitig 4/0</span><span>Standardlieferung</span><span>inkl. Versand DE</span>
+      <span id="spec-fmt">DIN A1 · 594 × 841 mm</span><span>10 Lochbohrungen</span><span>einseitig 4/0</span><span>Standardlieferung</span><span>inkl. Versand DE</span>
     </div>
     <div class="meta">
       <div class="stand" id="stand">Preise werden geladen …</div>
       <div class="controls">
+        <div class="seg" role="group" aria-label="Format">
+          <button data-fmt="A1" aria-pressed="true">A1</button><button data-fmt="A0">A0</button>
+        </div>
         <div class="seg" role="group" aria-label="Auflage">
           <button data-qty="1">1 Stk.</button><button data-qty="100" aria-pressed="true">100</button><button data-qty="500">500</button><button data-qty="1000">1.000</button><button data-qty="10000">10.000</button>
         </div>
@@ -142,7 +145,7 @@ footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:
 
   <section aria-labelledby="h-raw">
     <div class="sec-head"><h2 id="h-raw">Alle Datenstände</h2></div>
-    <div class="table-box"><table><thead><tr><th>Datum</th><th>Shop</th><th>Material</th><th class="num">Stück</th><th class="num">netto</th><th class="num">brutto</th><th class="num">je Stück</th></tr></thead><tbody id="raw"></tbody></table></div>
+    <div class="table-box"><table><thead><tr><th>Datum</th><th>Format</th><th>Shop</th><th>Material</th><th class="num">Stück</th><th class="num">netto</th><th class="num">brutto</th><th class="num">je Stück</th></tr></thead><tbody id="raw"></tbody></table></div>
   </section>
 
   <footer>
@@ -155,18 +158,23 @@ footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:
 const SHOPS={fla:{name:"Flyeralarm",color:"var(--c-fla)"},wmd:{name:"WIRmachenDRUCK",color:"var(--c-wmd)"},sax:{name:"Saxoprint",color:"var(--c-sax)"},
   dn:{name:"Drucknische",color:"var(--c-dn)"},h2p:{name:"highway2print",color:"var(--c-h2p)"},wps:{name:"wahlplakatshop",color:"var(--c-wps)"},jjb:{name:"jajabo",color:"var(--c-jjb)"}};
 const qtyLabel=n=>n.toLocaleString("de-DE")+" Stück";
-const state={snaps:[],qty:100,mode:"net",status:"loading"};
+const state={snaps:[],fmt:"A1",qty:100,mode:"net",status:"loading"};
+const FMT_SIZE={A1:"594 × 841 mm",A0:"841 × 1189 mm"};
+const fmtOf=i=>i.format||"A1";
 const eur=v=>v.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
 const fmtDate=d=>new Date(d+"T12:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});
-const key=i=>i.shop+"|"+i.material;
+const key=i=>fmtOf(i)+"|"+i.shop+"|"+i.material;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 function setPressed(){
   document.querySelectorAll("[data-qty]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.qty===state.qty));
+  document.querySelectorAll("[data-fmt]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.fmt===state.fmt));
+  $("spec-fmt").textContent=`DIN ${state.fmt} · ${FMT_SIZE[state.fmt]}`;
   $("mnet").setAttribute("aria-pressed",state.mode==="net");$("mgross").setAttribute("aria-pressed",state.mode==="gross");
 }
 document.querySelectorAll("[data-qty]").forEach(b=>b.addEventListener("click",()=>{state.qty=+b.dataset.qty;render()}));
+document.querySelectorAll("[data-fmt]").forEach(b=>b.addEventListener("click",()=>{state.fmt=b.dataset.fmt;render()}));
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{state.mode=b.dataset.mode;render()}));
 
 function render(){
@@ -188,12 +196,12 @@ function render(){
   $("stand").innerHTML=`Stand: <b>${fmtDate(latest.date)}${latest.updated?", "+new Date(latest.updated).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" Uhr":""}</b> · ${snaps.length} ${snaps.length>1?"Datenstände":"Datenstand"} gespeichert`;
 
   // Ranking
-  const offers=latest.items.filter(i=>i.qty===state.qty).sort((a,b)=>p(a)-p(b));
+  const offers=latest.items.filter(i=>fmtOf(i)===state.fmt&&i.qty===state.qty).sort((a,b)=>p(a)-p(b));
   const max=Math.max(...offers.map(p)), min=offers.length?p(offers[0]):0;
-  $("rank-sub").textContent=`${qtyLabel(state.qty)} · ${state.mode==="net"?"netto":"brutto"}`;
-  const na=[...(latest.errors||[]).map(e=>({shop:e.shop,reason:"Abruf fehlgeschlagen, angezeigt wird der letzte bekannte Preis"})),...(latest.unavailable||[]).filter(u=>u.qty===state.qty)];
+  $("rank-sub").textContent=`DIN ${state.fmt} · ${qtyLabel(state.qty)} · ${state.mode==="net"?"netto":"brutto"}`;
+  const na=[...(latest.errors||[]).filter(e=>(e.format||state.fmt)===state.fmt).map(e=>({shop:e.shop,reason:"Abruf fehlgeschlagen, angezeigt wird der letzte bekannte Preis"})),...(latest.unavailable||[]).filter(u=>(u.format||"A1")===state.fmt&&u.qty===state.qty)];
   $("na").hidden=!na.length;
-  $("na").innerHTML=na.length?`<li class="label">Hinweise für ${qtyLabel(state.qty)}</li>`+na.map(u=>`<li><strong>${esc(SHOPS[u.shop]?.name||u.shop)}</strong> · ${esc(u.reason)}</li>`).join(""):"";
+  $("na").innerHTML=na.length?`<li class="label">Hinweise für DIN ${state.fmt}, ${qtyLabel(state.qty)}</li>`+na.map(u=>`<li><strong>${esc(SHOPS[u.shop]?.name||u.shop)}</strong> · ${esc(u.reason)}</li>`).join(""):"";
   $("rank").innerHTML=offers.map((o,idx)=>{
     const before=prev&&prev.items.find(x=>key(x)===key(o)&&x.qty===o.qty);
     let change="";
@@ -211,17 +219,17 @@ function render(){
   renderChart(p);
 
   // Raw table, newest first
-  $("raw").innerHTML=[...snaps].reverse().flatMap(s=>[...s.items].sort((a,b)=>a.qty-b.qty||a.net-b.net).map(i=>
-    `<tr><td>${fmtDate(s.date)}</td><td>${esc(SHOPS[i.shop]?.name||i.shop)}</td><td>${esc(i.material)}</td><td class="num">${i.qty.toLocaleString("de-DE")}</td><td class="num">${eur(i.net)}</td><td class="num">${eur(i.gross)}</td><td class="num">${eur(i[state.mode]/i.qty)}</td></tr>`)).join("");
+  $("raw").innerHTML=[...snaps].reverse().flatMap(s=>[...s.items].sort((a,b)=>fmtOf(a).localeCompare(fmtOf(b))||a.qty-b.qty||a.net-b.net).map(i=>
+    `<tr><td>${fmtDate(s.date)}</td><td>${fmtOf(i)}</td><td>${esc(SHOPS[i.shop]?.name||i.shop)}</td><td>${esc(i.material)}</td><td class="num">${i.qty.toLocaleString("de-DE")}</td><td class="num">${eur(i.net)}</td><td class="num">${eur(i.gross)}</td><td class="num">${eur(i[state.mode]/i.qty)}</td></tr>`)).join("");
 }
 
 function renderChart(p){
   const snaps=state.snaps;
   const series={};
-  snaps.forEach((s,si)=>s.items.filter(i=>i.qty===state.qty).forEach(i=>{(series[key(i)]??={shop:i.shop,material:i.material,pts:[]}).pts.push([si,p(i)])}));
+  snaps.forEach((s,si)=>s.items.filter(i=>fmtOf(i)===state.fmt&&i.qty===state.qty).forEach(i=>{(series[key(i)]??={shop:i.shop,material:i.material,pts:[]}).pts.push([si,p(i)])}));
   const list=Object.values(series);
   const vals=list.flatMap(s=>s.pts.map(x=>x[1]));
-  $("hist-sub").textContent=`${qtyLabel(state.qty)} · ${state.mode==="net"?"netto":"brutto"}`;
+  $("hist-sub").textContent=`DIN ${state.fmt} · ${qtyLabel(state.qty)} · ${state.mode==="net"?"netto":"brutto"}`;
   $("hist-hint").hidden=snaps.length>1;
   if(!vals.length){$("chart").innerHTML="";return}
   const W=760,H=280,L=96,R=20,T=16,B=36;
