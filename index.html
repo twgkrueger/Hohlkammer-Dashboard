@@ -14,7 +14,7 @@
 :root{
   --bg:#eef1f3; --sheet:#ffffff; --fg:#1b2329; --muted:#5d6a73; --line:#d5dce1; --flute:rgba(27,35,41,.045);
   --accent:#0b6e8a; --good:#1d7a4c; --bad:#b4372b;
-  --c-fla:#c8322b; --c-wmd:#2563a8; --c-sax:#e07a14; --c-dn:#7b4bb7; --c-h2p:#138a72; --c-wps:#8a6d1f; --c-jjb:#c2187a;
+  --c-fla:#c8322b; --c-wmd:#2563a8; --c-sax:#e07a14; --c-dn:#7b4bb7; --c-h2p:#138a72; --c-wps:#8a6d1f; --c-jjb:#c2187a; --c-p24:#00838f; --c-mx:#3949ab; --c-bk:#6b7a12; --c-md:#b0471b;
   --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -22,10 +22,10 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#12171b; --sheet:#1a2126; --fg:#e4eaee; --muted:#93a1ab; --line:#2c363d; --flute:rgba(228,234,238,.035);
-  --accent:#4fb3cf; --good:#4cc38a; --bad:#ef7a6e; --c-fla:#ef6a62; --c-wmd:#6ea6e8; --c-sax:#f5a14a; --c-dn:#b28ae6; --c-h2p:#3ec6a6; --c-wps:#d1b25a; --c-jjb:#f06aae; color-scheme:dark}}
+  --accent:#4fb3cf; --good:#4cc38a; --bad:#ef7a6e; --c-fla:#ef6a62; --c-wmd:#6ea6e8; --c-sax:#f5a14a; --c-dn:#b28ae6; --c-h2p:#3ec6a6; --c-wps:#d1b25a; --c-jjb:#f06aae; --c-p24:#4dd0e1; --c-mx:#8c9eff; --c-bk:#b5c44a; --c-md:#f08a5d; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#12171b; --sheet:#1a2126; --fg:#e4eaee; --muted:#93a1ab; --line:#2c363d; --flute:rgba(228,234,238,.035);
-  --accent:#4fb3cf; --good:#4cc38a; --bad:#ef7a6e; --c-fla:#ef6a62; --c-wmd:#6ea6e8; --c-sax:#f5a14a; --c-dn:#b28ae6; --c-h2p:#3ec6a6; --c-wps:#d1b25a; --c-jjb:#f06aae; color-scheme:dark}
+  --accent:#4fb3cf; --good:#4cc38a; --bad:#ef7a6e; --c-fla:#ef6a62; --c-wmd:#6ea6e8; --c-sax:#f5a14a; --c-dn:#b28ae6; --c-h2p:#3ec6a6; --c-wps:#d1b25a; --c-jjb:#f06aae; --c-p24:#4dd0e1; --c-mx:#8c9eff; --c-bk:#b5c44a; --c-md:#f08a5d; color-scheme:dark}
 
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -149,14 +149,15 @@ footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:
   </section>
 
   <footer>
-    <span>Shops: Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print, wahlplakatshop und jajabo. Alle Preise inklusive Standardversand innerhalb Deutschlands, ohne Gutscheine, Kundenrabatte oder Kabelbinder. Abweichungen von der Vergleichskonfiguration stehen als Hinweis am jeweiligen Angebot.</span>
+    <span>Shops: Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print, wahlplakatshop, jajabo, print24, maxxprint, Bannerkönig und myDisplays. Alle Preise inklusive Standardversand innerhalb Deutschlands (wo ein Shop den Versand erst im Warenkorb nennt, ist er geschätzt und am Angebot vermerkt), ohne Gutscheine, Kundenrabatte oder Kabelbinder. Abweichungen von der Vergleichskonfiguration stehen als Hinweis am jeweiligen Angebot.</span>
     <span>Die Preise werden jeden Morgen automatisch per GitHub Action abgefragt. Über „Preise aktualisieren“ lässt sich die Abfrage zusätzlich von Hand starten; nach etwa zwei Minuten erscheint der neue Stand hier.</span>
   </footer>
 </div>
 
 <script>
 const SHOPS={fla:{name:"Flyeralarm",color:"var(--c-fla)"},wmd:{name:"WIRmachenDRUCK",color:"var(--c-wmd)"},sax:{name:"Saxoprint",color:"var(--c-sax)"},
-  dn:{name:"Drucknische",color:"var(--c-dn)"},h2p:{name:"highway2print",color:"var(--c-h2p)"},wps:{name:"wahlplakatshop",color:"var(--c-wps)"},jjb:{name:"jajabo",color:"var(--c-jjb)"}};
+  dn:{name:"Drucknische",color:"var(--c-dn)"},h2p:{name:"highway2print",color:"var(--c-h2p)"},wps:{name:"wahlplakatshop",color:"var(--c-wps)"},jjb:{name:"jajabo",color:"var(--c-jjb)"},
+  p24:{name:"print24",color:"var(--c-p24)"},mx:{name:"maxxprint",color:"var(--c-mx)"},bk:{name:"Bannerkönig",color:"var(--c-bk)"},md:{name:"myDisplays",color:"var(--c-md)"}};
 const qtyLabel=n=>n.toLocaleString("de-DE")+" Stück";
 const state={snaps:[],fmt:"A1",qty:100,mode:"net",status:"loading"};
 const FMT_SIZE={A1:"594 × 841 mm",A0:"841 × 1189 mm"};

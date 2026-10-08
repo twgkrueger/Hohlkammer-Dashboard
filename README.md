@@ -1,7 +1,7 @@
 # Hohlkammer Dashboard
 
-Preisvergleich für Hohlkammerplakate **DIN A1 und DIN A0, 10 Lochbohrungen, einseitig 4/0** bei sieben Online-Druckereien:
-Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print, wahlplakatshop und jajabo.
+Preisvergleich für Hohlkammerplakate **DIN A1 und DIN A0, 10 Lochbohrungen, einseitig 4/0** bei elf Online-Druckereien:
+Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print, wahlplakatshop, jajabo, print24, maxxprint, Bannerkönig und myDisplays.
 Auflagen: 1, 100, 500, 1.000 und 10.000 Stück. Alle Preise inklusive Standardversand innerhalb Deutschlands.
 
 ## Aufbau
@@ -10,7 +10,7 @@ Auflagen: 1, 100, 500, 1.000 und 10.000 Stück. Alle Preise inklusive Standardve
 |---|---|
 | `index.html` | Die Webseite (Ranking, Preisverlauf, alle Datenstände) |
 | `data/prices.json` | Alle gespeicherten Preise, ein Datenstand pro Tag |
-| `scraper/fetch_prices.py` | Fragt die sieben Shops ab und schreibt `data/prices.json` |
+| `scraper/fetch_prices.py` | Fragt die elf Shops ab und schreibt `data/prices.json` |
 | `.github/workflows/update-prices.yml` | Startet die Abfrage täglich und auf Knopfdruck |
 
 ## Einrichtung (einmalig)
@@ -33,6 +33,11 @@ Schlägt ein Shop fehl (z. B. weil er seine Seite umgebaut hat), übernimmt das 
 - **highway2print:** Versand kommt extra und wird anhand der Gewichtstabelle des Shops hinzugerechnet (A1 0,225 kg, A0 0,45 kg pro Plakat). A0 erst ab 2 Stück. Für 10.000 × A0 (4,5 t) reicht die Tabelle nicht, der Versand ist dort geschätzt.
 - **wahlplakatshop:** online 10 bis 5.000 Stück; A0 nur mit 12-fach-Stanzung.
 - **jajabo:** Staffelpreise stehen als Tabelle auf der Produktseite, 3 mm Platte, Versand gratis.
+- **print24:** Preis-Schnittstelle mit kurzlebigem Token; alle Auflagen bis 10.000, Versand inklusive.
+- **maxxprint:** Preis über Preisregeln des Shops; höchstens 100 Stück je Motiv, daher nur 1 und 100 Stück.
+- **Bannerkönig:** keine Lochung wählbar; Versand erst im Warenkorb, eingerechnet ist nur der Mindestbetrag von 6,90 € netto.
+- **myDisplays:** keine 10-fach-Lochung (nur 4 Eckbohrungen); Versand geschätzt mit 9,90 € je 30-kg-Paket.
+- **Salierdruck** (angefragt) bietet Wahlplakate nur in 120×80, 140×100 und 170×120 cm an und ist deshalb nicht enthalten.
 - **Saxoprint:** online höchstens 1.000 Stück. **Flyeralarm:** höchstens 5.000 Stück.
 
 ## Lokal testen (optional)

@@ -1,5 +1,5 @@
 """Fragt die Preise für Hohlkammerplakate DIN A1 und DIN A0 (10 Bohrungen, 4/0) bei
-sieben Online-Druckereien ab und schreibt einen Datenstand nach data/prices.json.
+elf Online-Druckereien ab und schreibt einen Datenstand nach data/prices.json.
 
 Alle Preise sind netto bzw. brutto INKLUSIVE Standardversand innerhalb Deutschlands.
 Schlägt ein Shop fehl, wird sein letzter bekannter Preis übernommen und der Fehler
@@ -294,6 +294,143 @@ def fetch_jjb(fmt):
     return out
 
 
+# --------------------------------------------------------------------------- print24
+P24_URL = "https://print24.com/de/druckprodukte/plakate/wahlplakate"
+P24_API = "https://print24.com/api/de/"
+P24_FORMATS = {"A1": "184", "A0": "314"}  # Eigenschaft "format"
+P24_QTY_IDS = {1: "340", 100: "400", 500: "350", 1000: "444", 10000: "399"}
+P24_PROPERTIES = [  # Konfiguration: Hohlkammerplatte 450 g, 10-fach Lochung 7 mm, 4/0, ohne Zubehör/Proof
+    ("availability", "3765"), ("quality", "4560"), ("format", None), ("aspect_ratio", "6309"),
+    ("material_spec", "7953"), ("farben", "115"), ("verarbeitung", "7954"), ("finishing", "6307"),
+    ("finishing_desc", "24"), ("finishing_size", "4016"), ("accessories", "6003"), ("proofformat", "823"),
+    ("proofpages", "840"), ("motive", "27"),
+]
+
+
+def fetch_p24(fmt):
+    headers = {"portal": "print24", "Accept": "application/json, text/plain, */*"}
+    tok = session.get(P24_API + "token/create/expiry", headers=headers, timeout=TIMEOUT)
+    tok.raise_for_status()
+    headers = dict(headers, auth=tok.json()["token"])
+    body = {
+        "delivery_country_code": "DE",
+        "product_alias_id": 111,
+        "properties": [{"id": P24_FORMATS[fmt] if pid is None else pid, "name": name} for name, pid in P24_PROPERTIES],
+        "quantities": [P24_QTY_IDS[q] for q in QTYS],
+        "premium_file_check": 0,
+    }
+    r = session.post(P24_API + "itemmaster/calculation/price-matrix", json=body, headers=headers, timeout=TIMEOUT)
+    r.raise_for_status()
+    out = []
+    for row in r.json():
+        types = row["quantity"]["shipping_type"]
+        std = next((t for t in types if t.get("delivery_type") == "standard"), types[0])
+        price = std["price"]
+        qty = int(price["quantity_value"])
+        fp = price["final_prices"]  # total_* = inkl. Versand
+        if qty in QTYS:
+            out.append(item("p24", fmt, "Hohlkammerplatte 450 g, 2,5 mm", qty, fp["total_net_value"], fp["total_gross_value"], P24_URL))
+    if not out:
+        raise RuntimeError("keine Preise in der Antwort")
+    return out
+
+
+# ------------------------------------------------------------------------------- maxxprint
+MX_URL = "https://maxxprint.de/wahlplakate?number=SW10054"
+MX_VARIANT = "https://maxxprint.de/wahlplakate"
+MX_EVAL = "https://maxxprint.de/evaluator/price"
+MX_FORMATS = {"A1": ("1383", 594, 841), "A0": ("1384", 841, 1189)}  # Option, Breite, Höhe (mm)
+MX_SHIPPING_OPTION = "1529"  # Standardversand
+MX_MAX_PER_MOTIF = 100
+
+
+def fetch_mx(fmt):
+    option, width, height = MX_FORMATS[fmt]
+    params = {"group[7]": option, "input-product-motive": "1", "input-product-auflage": "1",
+              "group[68]": MX_SHIPPING_OPTION, "template": "ajax"}
+    page = session.get(MX_VARIANT, params=params, timeout=TIMEOUT)
+    page.raise_for_status()
+
+    def option_rule(value):
+        m = re.search(rf'value="{value}"[^>]*?data-maxx_price_rule="([^"]*)"[^>]*?data-maxx_surcharge_once="([^"]*)"', page.text)
+        if not m:
+            raise RuntimeError(f"Preisregel für Option {value} nicht gefunden")
+        return m.group(1), m.group(2)
+
+    fmt_rule, once = option_rule(option)
+    ship_rule, _ = option_rule(MX_SHIPPING_OPTION)
+    art = re.search(r'data-art_price_rule="([^"]*)"', page.text)
+    rules = [fmt_rule, "multstueck{}", art.group(1) if art else "motive{3.00}", once or "0", ship_rule]
+    out = []
+    for qty in [q for q in QTYS if q <= MX_MAX_PER_MOTIF]:
+        data = {"fictionalPrice": "false", "basePrice": "0", "anzahl": str(qty), "motive": "1", "auflage": str(qty),
+                "width": str(width), "height": str(height), "unit": "mm", "sender": "skycoPriceBox"}
+        data.update({f"priceRule-{i}": rule for i, rule in enumerate(rules)})
+        r = session.post(MX_EVAL, data=data, timeout=TIMEOUT, headers={"X-Requested-With": "XMLHttpRequest", "Referer": MX_URL})
+        r.raise_for_status()
+        net = sum(float(t["res"]) for t in r.json()["data"]["trackback"])  # inkl. Versand
+        out.append(item("mx", fmt, "Hohlkammerplatte", qty, net, net * VAT, MX_URL))
+    return out
+
+
+# ------------------------------------------------------------------------------ Bannerkönig
+BK_URL = "https://www.bannerkoenig.de/shop/wahlplakat-hohlkammerplatte/"
+BK_CALC = "https://www.bannerkoenig.de/"
+BK_FORMATS = {"A1": "din_a1", "A0": "din_a0"}
+BK_SHIP_MIN_NET = 6.90  # Mindestversand laut Versandseite; genaue Kosten erst im Warenkorb
+BK_NOTES = ["ohne Lochung (nicht wählbar)", "Versand: nur Mindestbetrag 6,90 € eingerechnet"]
+
+
+def fetch_bk(fmt):
+    page = session.get(BK_URL, timeout=TIMEOUT)
+    page.raise_for_status()
+    m = re.search(r'bkcmz_core_ajax\s*=\s*\{[^}]*"nonce":"([a-f0-9]+)"', page.text)
+    if not m:
+        raise RuntimeError("Nonce nicht gefunden")
+    out = []
+    for qty in QTYS:
+        data = {"product_id": "2558888", "erp_cpo_material": "hohlkammerplatte_3mm", "erp_cpo_druck": "einseitiger_druck",
+                "erp_cpo_groesse": BK_FORMATS[fmt], "erp_cpo_menge": str(qty)}
+        r = session.post(BK_CALC, params={"bkcmz_perform_calculations": "1", "nonce": m.group(1)}, data=data,
+                         timeout=TIMEOUT, headers={"Referer": BK_URL})
+        r.raise_for_status()
+        j = r.json()
+        if not j.get("success"):
+            raise RuntimeError(f"Berechnung fehlgeschlagen für {qty} Stück")
+        net = float(j["data"]["price_netto"]) + BK_SHIP_MIN_NET
+        out.append(item("bk", fmt, "Hohlkammerplatte 3 mm", qty, net, net * VAT, BK_URL, BK_NOTES))
+    return out
+
+
+# ------------------------------------------------------------------------------ myDisplays
+MD_URL = "https://www.mydisplays.net/wahlplakat-hohlkammer"
+MD_API = "https://www.mydisplays.net/website_product_configurator/onchange"
+MD_TEMPLATE = 3926
+MD_FORMATS = {"A1": (1099, 0.225), "A0": (1100, 0.45)}  # Größen-ID, geschätztes Gewicht pro Stück (kg)
+MD_FIXED = [643, 370, 567, 380, 316]  # Konfektion, Zuschnitt rechteckig, 2,5 mm Platte, ohne Bohrungen, Basis-Datencheck
+MD_SHIP_PER_30KG = 9.90  # Standardversand Deutschland je Paket bis 30 kg (https://www.mydisplays.net/versandkosten)
+MD_NOTES = ["ohne Lochung (nur 4 Eckbohrungen wählbar)", "Versand geschätzt (9,90 € je 30-kg-Paket)"]
+
+
+def fetch_md(fmt):
+    size_id, kg_each = MD_FORMATS[fmt]
+    out = []
+    for qty in QTYS:
+        payload = {"id": 1, "jsonrpc": "2.0", "method": "call", "params": {
+            "product_id": MD_TEMPLATE, "selected_ids": MD_FIXED + [size_id],
+            "custom_values": {"52": str(qty), "56": "1", "93": False}}}
+        r = session.post(MD_API, json=payload, timeout=TIMEOUT, headers={"Referer": MD_URL})
+        r.raise_for_status()
+        res = r.json().get("result")
+        if not res:
+            raise RuntimeError(f"keine Antwort für {qty} Stück")
+        goods = float(res["prices"]["price"])
+        ship = math.ceil(qty * kg_each / 30) * MD_SHIP_PER_30KG
+        net = goods + ship
+        out.append(item("md", fmt, "Hohlkammerplatte 2,5 mm", qty, net, net * VAT, MD_URL, MD_NOTES))
+    return out
+
+
 # --------------------------------------------------------------------------------- Main
 SHOPS = {
     "fla": fetch_fla,
@@ -303,6 +440,10 @@ SHOPS = {
     "h2p": fetch_h2p,
     "wps": fetch_wps,
     "jjb": fetch_jjb,
+    "p24": fetch_p24,
+    "mx": fetch_mx,
+    "bk": fetch_bk,
+    "md": fetch_md,
 }
 
 
@@ -317,6 +458,9 @@ UNAVAILABLE = [
     *_na("sax", 10000, "online höchstens 1.000 Stück"),
     *_na("dn", 10000, "online höchstens 1.000 Stück"),
     *_na("wps", 10000, "online höchstens 5.000 Stück, größere Mengen auf Anfrage"),
+    *_na("mx", 500, "online höchstens 100 Stück je Motiv"),
+    *_na("mx", 1000, "online höchstens 100 Stück je Motiv"),
+    *_na("mx", 10000, "online höchstens 100 Stück je Motiv"),
 ]
 
 
