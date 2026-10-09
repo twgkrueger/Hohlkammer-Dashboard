@@ -23,7 +23,7 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "data" / "prices.json"
 FORMATS = ["A1", "A0"]
-QTYS = [1, 100, 500, 1000, 10000]
+QTYS = [1, 100, 500, 1000, 5000, 10000]
 VAT = 1.19
 TIMEOUT = 30
 RETRY_WAITS = [20, 60]  # Pausen (s) vor dem 2. und 3. Versuch, falls ein Shop nicht antwortet
@@ -300,7 +300,7 @@ def fetch_jjb(fmt):
 P24_URL = "https://print24.com/de/druckprodukte/plakate/wahlplakate"
 P24_API = "https://print24.com/api/de/"
 P24_FORMATS = {"A1": "184", "A0": "314"}  # Eigenschaft "format"
-P24_QTY_IDS = {1: "340", 100: "400", 500: "350", 1000: "444", 10000: "399"}
+P24_QTY_IDS = {1: "340", 100: "400", 500: "350", 1000: "444", 5000: "499", 10000: "399"}
 P24_PROPERTIES = [  # Konfiguration: Hohlkammerplatte 450 g, 10-fach Lochung 7 mm, 4/0, ohne Zubehör/Proof
     ("availability", "3765"), ("quality", "4560"), ("format", None), ("aspect_ratio", "6309"),
     ("material_spec", "7953"), ("farben", "115"), ("verarbeitung", "7954"), ("finishing", "6307"),
@@ -457,11 +457,14 @@ UNAVAILABLE = [
     *_na("wps", 1, "Mindestbestellmenge 10 Stück"),
     *_na("h2p", 1, "Mindestbestellmenge 2 Stück", formats=("A0",)),
     *_na("fla", 10000, "online höchstens 5.000 Stück"),
+    *_na("sax", 5000, "online höchstens 1.000 Stück"),
     *_na("sax", 10000, "online höchstens 1.000 Stück"),
+    *_na("dn", 5000, "online höchstens 1.000 Stück"),
     *_na("dn", 10000, "online höchstens 1.000 Stück"),
     *_na("wps", 10000, "online höchstens 5.000 Stück, größere Mengen auf Anfrage"),
     *_na("mx", 500, "online höchstens 100 Stück je Motiv"),
     *_na("mx", 1000, "online höchstens 100 Stück je Motiv"),
+    *_na("mx", 5000, "online höchstens 100 Stück je Motiv"),
     *_na("mx", 10000, "online höchstens 100 Stück je Motiv"),
 ]
 
