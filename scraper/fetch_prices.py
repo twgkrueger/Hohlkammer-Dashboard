@@ -12,6 +12,7 @@ import json
 import math
 import re
 import sys
+import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,6 +26,7 @@ FORMATS = ["A1", "A0"]
 QTYS = [1, 100, 500, 1000, 10000]
 VAT = 1.19
 TIMEOUT = 30
+RETRY_WAITS = [20, 60]  # Pausen (s) vor dem 2. und 3. Versuch, falls ein Shop nicht antwortet
 
 HEADERS = {
     "User-Agent": (
@@ -74,7 +76,7 @@ def fetch_fla(fmt):
     out = []
     for mat, name in FLA_MATERIALS.items():
         url = FLA_API.format(fmt=FLA_FORMATS[fmt], mat=mat)
-        r = session.get(url, timeout=TIMEOUT, headers={"Accept": "application/json"})
+        r = session.get(url, timeout=(15, 60), headers={"Accept": "application/json"})
         r.raise_for_status()
         quantities = r.json()["variantPrice"]["quantities"]
         by_amount = {q["amount"]: q["deliveryTypes"]["standard"] for q in quantities}
@@ -464,6 +466,20 @@ UNAVAILABLE = [
 ]
 
 
+def with_retries(fn, fmt, shop):
+    """Ruft fn(fmt) auf und wiederholt bei Fehlern (z. B. Zeitüberschreitung) nach kurzer Pause."""
+    for attempt, wait in enumerate([0, *RETRY_WAITS], start=1):
+        if wait:
+            print(f"WARTE  {fmt} {shop}: {wait}s vor Versuch {attempt}")
+            time.sleep(wait)
+        try:
+            return fn(fmt)
+        except Exception as exc:  # noqa: BLE001
+            if attempt > len(RETRY_WAITS):
+                raise
+            print(f"RETRY  {fmt} {shop}: Versuch {attempt} fehlgeschlagen: {str(exc)[:200]}")
+
+
 def main() -> int:
     data = json.loads(DATA_FILE.read_text("utf-8")) if DATA_FILE.exists() else {"snapshots": []}
     snapshots = sorted(data.get("snapshots", []), key=lambda s: s["date"])
@@ -476,7 +492,7 @@ def main() -> int:
     for fmt in FORMATS:
         for shop, fn in SHOPS.items():
             try:
-                got = fn(fmt)
+                got = with_retries(fn, fmt, shop)
                 items.extend(got)
                 print(f"OK     {fmt} {shop}: {len(got)} Preise")
             except Exception as exc:  # noqa: BLE001 – ein Shop darf die anderen nicht stoppen
