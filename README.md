@@ -4,6 +4,9 @@ Preisvergleich für Hohlkammerplakate **DIN A1 und DIN A0, 10 Lochbohrungen, ein
 Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print, wahlplakatshop, jajabo, print24, maxxprint, Bannerkönig und myDisplays.
 Auflagen: 1, 100, 500, 1.000, 5.000 und 10.000 Stück. Alle Preise inklusive Standardversand innerhalb Deutschlands.
 
+Zusätzlich: **18/1-Großflächenplakate** (356 × 252 cm, Affichenpapier mit blauer Rückseite, einseitig 4/0) in kleinen Auflagen von **1, 3, 5 und 10 Stück**
+bei Flyeralarm, WIRmachenDRUCK, highway2print, wahlplakatshop, maxxprint, Bannerkönig und myDisplays. Direktlink zur Ansicht: `…/#18/1`.
+
 ## Aufbau
 
 | Datei | Zweck |
@@ -39,6 +42,20 @@ Schlägt ein Shop fehl (z. B. weil er seine Seite umgebaut hat), übernimmt das 
 - **myDisplays:** keine 10-fach-Lochung (nur 4 Eckbohrungen); Versand geschätzt mit 9,90 € je 30-kg-Paket.
 - **Salierdruck** (angefragt) bietet Wahlplakate nur in 120×80, 140×100 und 170×120 cm an und ist deshalb nicht enthalten.
 - **Saxoprint:** online höchstens 1.000 Stück. **Flyeralarm:** höchstens 5.000 Stück.
+
+### 18/1-Großflächenplakate
+
+| Shop | Material | Hinweis |
+|---|---|---|
+| Flyeralarm | 115 g Affichenpapier | eigenes Produkt „18/1 Plakate“, Versand inklusive |
+| WIRmachenDRUCK | 120 g Affichenpapier Blueback | Versand inklusive |
+| highway2print | 115 g Plakatpapier Blueback | 4 Teile; Versand nach Gewichtstabelle (1,077 kg pro Plakat) |
+| wahlplakatshop | 115 g Affichenpapier | 4 Teile; 1–100 Stück, Versand inklusive |
+| maxxprint | 115 g Blueback-Affichenpapier | 4 Teile, verklebefertig gemappt; höchstens 50 Stück je Motiv |
+| Bannerkönig | 120 g Blueback-Affichenpapier | Versand erst im Warenkorb, eingerechnet nur 6,90 € netto |
+| myDisplays | 130 g Affichenpapier Blueback | Freiformat 356 × 252 cm, gedruckt in Bahnen bis 130 cm; Versand geschätzt |
+
+Nicht enthalten: **print24** (18/1 erst ab 100 Stück), **Saxoprint**, **Drucknische** und **jajabo** (kein 18/1-Format).
 
 ## Lokal testen (optional)
 

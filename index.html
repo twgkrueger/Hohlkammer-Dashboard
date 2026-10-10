@@ -107,20 +107,16 @@ footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:
 <div class="wrap">
   <header class="sheet">
     <div class="holes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-    <span class="label">Preisvergleich Hohlkammerplakate</span>
+    <span class="label">Preisvergleich Hohlkammer- und Großflächenplakate</span>
     <h1>Hohlkammer Dashboard</h1>
-    <div class="spec" aria-label="Vergleichskonfiguration">
-      <span id="spec-fmt">DIN A1 · 594 × 841 mm</span><span>10 Lochbohrungen</span><span>einseitig 4/0</span><span>Standardlieferung</span><span>inkl. Versand DE</span>
-    </div>
+    <div class="spec" aria-label="Vergleichskonfiguration" id="spec"></div>
     <div class="meta">
       <div class="stand" id="stand">Preise werden geladen …</div>
       <div class="controls">
         <div class="seg" role="group" aria-label="Format">
-          <button data-fmt="A1" aria-pressed="true">A1</button><button data-fmt="A0">A0</button>
+          <button data-fmt="A1" aria-pressed="true">A1</button><button data-fmt="A0">A0</button><button data-fmt="18/1" title="Großflächenplakat 356 × 252 cm">18/1</button>
         </div>
-        <div class="seg" role="group" aria-label="Auflage">
-          <button data-qty="1">1 Stk.</button><button data-qty="100" aria-pressed="true">100</button><button data-qty="500">500</button><button data-qty="1000">1.000</button><button data-qty="5000">5.000</button><button data-qty="10000">10.000</button>
-        </div>
+        <div class="seg" role="group" aria-label="Auflage" id="qtys"></div>
         <a class="btn" id="refresh" hidden target="_blank" rel="noopener" title="Öffnet GitHub. Dort auf „Run workflow“ klicken (nur für Repo-Inhaber).">Preise aktualisieren ↗</a>
         <div class="seg" role="group" aria-label="Preisart">
           <button id="mnet" data-mode="net" aria-pressed="true">netto</button><button id="mgross" data-mode="gross">brutto</button>
@@ -149,7 +145,7 @@ footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:
   </section>
 
   <footer>
-    <span>Shops: Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print, wahlplakatshop, jajabo, print24, maxxprint, Bannerkönig und myDisplays. Alle Preise inklusive Standardversand innerhalb Deutschlands (wo ein Shop den Versand erst im Warenkorb nennt, ist er geschätzt und am Angebot vermerkt), ohne Gutscheine, Kundenrabatte oder Kabelbinder. Abweichungen von der Vergleichskonfiguration stehen als Hinweis am jeweiligen Angebot.</span>
+    <span>Shops: Flyeralarm, WIRmachenDRUCK, Saxoprint, Drucknische, highway2print, wahlplakatshop, jajabo, print24, maxxprint, Bannerkönig und myDisplays. 18/1-Großflächenplakate (356 × 252 cm, Affichenpapier mit blauer Rückseite) werden in kleinen Auflagen von 1 bis 10 Stück verglichen; Papiergewicht und Teilung unterscheiden sich je Shop und stehen am Angebot. Alle Preise inklusive Standardversand innerhalb Deutschlands (wo ein Shop den Versand erst im Warenkorb nennt, ist er geschätzt und am Angebot vermerkt), ohne Gutscheine, Kundenrabatte oder Kabelbinder. Abweichungen von der Vergleichskonfiguration stehen als Hinweis am jeweiligen Angebot.</span>
     <span>Die Preise werden jeden Morgen automatisch per GitHub Action abgefragt. Über „Preise aktualisieren“ lässt sich die Abfrage zusätzlich von Hand starten; nach etwa zwei Minuten erscheint der neue Stand hier.</span>
   </footer>
 </div>
@@ -159,8 +155,16 @@ const SHOPS={fla:{name:"Flyeralarm",color:"var(--c-fla)"},wmd:{name:"WIRmachenDR
   dn:{name:"Drucknische",color:"var(--c-dn)"},h2p:{name:"highway2print",color:"var(--c-h2p)"},wps:{name:"wahlplakatshop",color:"var(--c-wps)"},jjb:{name:"jajabo",color:"var(--c-jjb)"},
   p24:{name:"print24",color:"var(--c-p24)"},mx:{name:"maxxprint",color:"var(--c-mx)"},bk:{name:"Bannerkönig",color:"var(--c-bk)"},md:{name:"myDisplays",color:"var(--c-md)"}};
 const qtyLabel=n=>n.toLocaleString("de-DE")+" Stück";
-const state={snaps:[],fmt:"A1",qty:100,mode:"net",status:"loading"};
-const FMT_SIZE={A1:"594 × 841 mm",A0:"841 × 1189 mm"};
+// Formate: Hohlkammerplakate A1/A0 (große Auflagen) und 18/1-Großflächenplakate (kleine Auflagen)
+const FORMATS={
+  A1:{name:"DIN A1",spec:["DIN A1 · 594 × 841 mm","10 Lochbohrungen","einseitig 4/0","Standardlieferung","inkl. Versand DE"],qtys:[1,100,500,1000,5000,10000],qty:100},
+  A0:{name:"DIN A0",spec:["DIN A0 · 841 × 1189 mm","10 Lochbohrungen","einseitig 4/0","Standardlieferung","inkl. Versand DE"],qtys:[1,100,500,1000,5000,10000],qty:100},
+  "18/1":{name:"18/1",spec:["18/1 · 356 × 252 cm","Affichenpapier Blueback","einseitig 4/0","Standardlieferung","inkl. Versand DE"],qtys:[1,3,5,10],qty:1}
+};
+const hashFmt=decodeURIComponent(location.hash.slice(1));
+const startFmt=FORMATS[hashFmt]?hashFmt:"A1";
+const state={snaps:[],fmt:startFmt,qty:FORMATS[startFmt].qty,mode:"net",status:"loading"};
+const fmtName=f=>FORMATS[f]?.name||f;
 const fmtOf=i=>i.format||"A1";
 const eur=v=>v.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
 const fmtDate=d=>new Date(d+"T12:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});
@@ -169,13 +173,24 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 function setPressed(){
-  document.querySelectorAll("[data-qty]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.qty===state.qty));
+  const F=FORMATS[state.fmt];
+  const qb=$("qtys");
+  if(qb.dataset.fmt!==state.fmt){
+    qb.dataset.fmt=state.fmt;
+    qb.innerHTML=F.qtys.map(q=>`<button data-qty="${q}">${q===1?"1 Stk.":q.toLocaleString("de-DE")}</button>`).join("");
+    $("spec").innerHTML=F.spec.map(s=>`<span>${esc(s)}</span>`).join("");
+  }
+  qb.querySelectorAll("[data-qty]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.qty===state.qty));
   document.querySelectorAll("[data-fmt]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.fmt===state.fmt));
-  $("spec-fmt").textContent=`DIN ${state.fmt} · ${FMT_SIZE[state.fmt]}`;
   $("mnet").setAttribute("aria-pressed",state.mode==="net");$("mgross").setAttribute("aria-pressed",state.mode==="gross");
 }
-document.querySelectorAll("[data-qty]").forEach(b=>b.addEventListener("click",()=>{state.qty=+b.dataset.qty;render()}));
-document.querySelectorAll("[data-fmt]").forEach(b=>b.addEventListener("click",()=>{state.fmt=b.dataset.fmt;render()}));
+$("qtys").addEventListener("click",e=>{const b=e.target.closest("[data-qty]");if(b){state.qty=+b.dataset.qty;render()}});
+document.querySelectorAll("[data-fmt]").forEach(b=>b.addEventListener("click",()=>{
+  state.fmt=b.dataset.fmt;
+  if(!FORMATS[state.fmt].qtys.includes(state.qty))state.qty=FORMATS[state.fmt].qty;
+  try{history.replaceState(null,"",state.fmt==="A1"?location.pathname+location.search:"#"+state.fmt)}catch(e){}
+  render();
+}));
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{state.mode=b.dataset.mode;render()}));
 
 function render(){
@@ -199,10 +214,10 @@ function render(){
   // Ranking
   const offers=latest.items.filter(i=>fmtOf(i)===state.fmt&&i.qty===state.qty).sort((a,b)=>p(a)-p(b));
   const max=Math.max(...offers.map(p)), min=offers.length?p(offers[0]):0;
-  $("rank-sub").textContent=`DIN ${state.fmt} · ${qtyLabel(state.qty)} · ${state.mode==="net"?"netto":"brutto"}`;
+  $("rank-sub").textContent=`${fmtName(state.fmt)} · ${qtyLabel(state.qty)} · ${state.mode==="net"?"netto":"brutto"}`;
   const na=[...(latest.errors||[]).filter(e=>(e.format||state.fmt)===state.fmt).map(e=>({shop:e.shop,reason:"Abruf fehlgeschlagen, angezeigt wird der letzte bekannte Preis"})),...(latest.unavailable||[]).filter(u=>(u.format||"A1")===state.fmt&&u.qty===state.qty)];
   $("na").hidden=!na.length;
-  $("na").innerHTML=na.length?`<li class="label">Hinweise für DIN ${state.fmt}, ${qtyLabel(state.qty)}</li>`+na.map(u=>`<li><strong>${esc(SHOPS[u.shop]?.name||u.shop)}</strong> · ${esc(u.reason)}</li>`).join(""):"";
+  $("na").innerHTML=na.length?`<li class="label">Hinweise für ${fmtName(state.fmt)}, ${qtyLabel(state.qty)}</li>`+na.map(u=>`<li><strong>${esc(SHOPS[u.shop]?.name||u.shop)}</strong> · ${esc(u.reason)}</li>`).join(""):"";
   $("rank").innerHTML=offers.map((o,idx)=>{
     const before=prev&&prev.items.find(x=>key(x)===key(o)&&x.qty===o.qty);
     let change="";
@@ -230,7 +245,7 @@ function renderChart(p){
   snaps.forEach((s,si)=>s.items.filter(i=>fmtOf(i)===state.fmt&&i.qty===state.qty).forEach(i=>{(series[key(i)]??={shop:i.shop,material:i.material,pts:[]}).pts.push([si,p(i)])}));
   const list=Object.values(series);
   const vals=list.flatMap(s=>s.pts.map(x=>x[1]));
-  $("hist-sub").textContent=`DIN ${state.fmt} · ${qtyLabel(state.qty)} · ${state.mode==="net"?"netto":"brutto"}`;
+  $("hist-sub").textContent=`${fmtName(state.fmt)} · ${qtyLabel(state.qty)} · ${state.mode==="net"?"netto":"brutto"}`;
   $("hist-hint").hidden=snaps.length>1;
   if(!vals.length){$("chart").innerHTML="";return}
   const W=760,H=280,L=96,R=20,T=16,B=36;

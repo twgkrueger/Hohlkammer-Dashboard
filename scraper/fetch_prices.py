@@ -1,5 +1,6 @@
 """Fragt die Preise für Hohlkammerplakate DIN A1 und DIN A0 (10 Bohrungen, 4/0) bei
-elf Online-Druckereien ab und schreibt einen Datenstand nach data/prices.json.
+elf Online-Druckereien sowie für 18/1-Großflächenplakate (356 x 252 cm, Affichenpapier,
+4/0) in kleinen Auflagen ab und schreibt einen Datenstand nach data/prices.json.
 
 Alle Preise sind netto bzw. brutto INKLUSIVE Standardversand innerhalb Deutschlands.
 Schlägt ein Shop fehl, wird sein letzter bekannter Preis übernommen und der Fehler
@@ -22,8 +23,10 @@ import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "data" / "prices.json"
-FORMATS = ["A1", "A0"]
+FORMATS = ["A1", "A0"]  # Hohlkammerplakate
 QTYS = [1, 100, 500, 1000, 5000, 10000]
+F181 = "18/1"  # Großflächenplakat 356 x 252 cm, nur kleine Auflagen
+QTYS_181 = [1, 3, 5, 10]
 VAT = 1.19
 TIMEOUT = 30
 RETRY_WAITS = [20, 60]  # Pausen (s) vor dem 2. und 3. Versuch, falls ein Shop nicht antwortet
@@ -194,6 +197,8 @@ H2P_PRODUCTS = {
     "A1": ("https://www.highway2print.de/produkt/hohlkammerplakat-din-a1/", "180", 0.225, 1),
     "A0": ("https://www.highway2print.de/produkt/hohlkammerplakat-din-a0/", "177", 0.450, 2),
 }
+# 18/1: 115 g Plakatpapier, 4 Teile; Gewicht laut Produktseite 1,077 kg pro Plakat
+H2P_181 = ("https://www.highway2print.de/produkt/grossflaechen-plakat-18-1-plakate/", "438", 1.077, 1)
 # Versand brutto laut https://www.highway2print.de/versandarten/ (Stand 10/2026)
 H2P_DPD = [(3, 10.71), (10, 14.28), (15, 17.85), (20, 21.42), (25, 23.80), (30, 29.75)]
 H2P_FREIGHT = [
@@ -218,7 +223,14 @@ def h2p_shipping_gross(kg):
 
 
 def fetch_h2p(fmt):
-    url, product_id, kg_each, min_qty = H2P_PRODUCTS[fmt]
+    if fmt == F181:
+        url, product_id, kg_each, min_qty = H2P_181
+        qtys, lochung, material = QTYS_181, "", "115 g Plakatpapier Blueback"
+        base_notes = ["4 Teile, gefalzt und gemappt"]
+    else:
+        url, product_id, kg_each, min_qty = H2P_PRODUCTS[fmt]
+        qtys, lochung, material = QTYS, "10-fach-Lochung", "Hohlkammerplatte 2,5 mm"
+        base_notes = []
     page = session.get(url, timeout=TIMEOUT)
     page.raise_for_status()
     m = re.search(r'highwayOfferNonce\s*=\s*"([^"]+)"', page.text)
@@ -226,10 +238,10 @@ def fetch_h2p(fmt):
         raise RuntimeError("Nonce nicht gefunden")
     nonce = m.group(1)
     out = []
-    for qty in [q for q in QTYS if q >= min_qty]:
+    for qty in [q for q in qtys if q >= min_qty]:
         data = {
             "action": "highway_live_offer", "nonce": nonce, "product_id": product_id, "total_qty": str(qty),
-            "motif_count": "1", "lochung": "10-fach-Lochung", "datencheck": "ohne",
+            "motif_count": "1", "lochung": lochung, "datencheck": "ohne",
         }
         r = session.post(H2P_AJAX, data=data, timeout=TIMEOUT, headers={"Referer": url})
         r.raise_for_status()
@@ -239,31 +251,34 @@ def fetch_h2p(fmt):
         net_goods = de_number(re.sub(r"<[^>]+>|&nbsp;|&euro;|€", "", j["data"]["net_total"]))
         ship_gross, note = h2p_shipping_gross(qty * kg_each)
         net = net_goods + ship_gross / VAT
-        out.append(item("h2p", fmt, "Hohlkammerplatte 2,5 mm", qty, net, net * VAT, url, [note]))
+        out.append(item("h2p", fmt, material, qty, net, net * VAT, url, base_notes + [note]))
     return out
 
 
 # ----------------------------------------------------------------------- wahlplakatshop
 WPS_AJAX = "https://www.wahlplakatshop.de/?wc-ajax=get_variation"
 WPS_PRODUCTS = {
-    # Format: (Produktseite, product_id, Hinweise)
-    "A1": ("https://www.wahlplakatshop.de/product/hohlkammerplakate-a1/", "24", None),
-    "A0": ("https://www.wahlplakatshop.de/product/hohlkammerplakate-a0/", "75", ["12-fach statt 10-fach Lochung"]),
+    # Format: (Produktseite, product_id, Material, Hinweise, Mindest-, Höchstmenge)
+    "A1": ("https://www.wahlplakatshop.de/product/hohlkammerplakate-a1/", "24",
+           "Hohlkammer-Stegplatte 2,5 mm", None, 10, 5000),
+    "A0": ("https://www.wahlplakatshop.de/product/hohlkammerplakate-a0/", "75",
+           "Hohlkammer-Stegplatte 2,5 mm", ["12-fach statt 10-fach Lochung"], 10, 5000),
+    F181: ("https://www.wahlplakatshop.de/affichenpapier-18-1-plakate/", "13042",
+           "115 g Affichenpapier Blueback", ["4 Teile"], 1, 100),
 }
-WPS_MIN, WPS_MAX = 10, 5000
 
 
 def fetch_wps(fmt):
-    url, product_id, notes = WPS_PRODUCTS[fmt]
+    url, product_id, material, notes, q_min, q_max = WPS_PRODUCTS[fmt]
     out = []
-    for qty in [q for q in QTYS if WPS_MIN <= q <= WPS_MAX]:
+    for qty in [q for q in (QTYS_181 if fmt == F181 else QTYS) if q_min <= q <= q_max]:
         r = session.post(WPS_AJAX, data={"product_id": product_id, "attribute_menge": f"{qty} Stk."}, timeout=TIMEOUT)
         r.raise_for_status()
         j = r.json()
         if not j or "display_price" not in j:
             raise RuntimeError(f"keine Variante für {qty} Stück")
         net = float(j["display_price"])  # netto inkl. Versand
-        out.append(item("wps", fmt, "Hohlkammer-Stegplatte 2,5 mm", qty, net, net * VAT, url, notes))
+        out.append(item("wps", fmt, material, qty, net, net * VAT, url, notes))
     return out
 
 
@@ -433,6 +448,134 @@ def fetch_md(fmt):
     return out
 
 
+# ===================================================================== 18/1-Großflächenplakate
+# Vergleichskonfiguration: 356 x 252 cm, Affichen-/Blueback-Papier, einseitig 4/0, ein Motiv,
+# Standardlieferung. Teilung und Papiergewicht unterscheiden sich je Shop und stehen im Material
+# bzw. als Hinweis am Angebot.
+
+FLA181_URL = "https://www.flyeralarm.com/de/p/181-plakate-22634376.html"
+FLA181_API = "https://www.flyeralarm.com/de/p/22634376/variant"
+
+
+def fetch_fla_181(fmt):
+    r = session.get(FLA181_API, timeout=(15, 60), headers={"Accept": "application/json"})
+    r.raise_for_status()
+    by_amount = {q["amount"]: q["deliveryTypes"]["standard"] for q in r.json()["variantPrice"]["quantities"]}
+    out = [
+        item("fla", fmt, "115 g Affichenpapier", qty, by_amount[qty]["salesPriceNet"] / 100,
+             by_amount[qty]["salesPriceGross"] / 100, FLA181_URL)
+        for qty in QTYS_181 if qty in by_amount
+    ]
+    if not out:
+        raise RuntimeError("keine Preise in der Antwort")
+    return out
+
+
+WMD181_URL = "https://www.wir-machen-druck.de/grossflaechenplakat-181-356-x-252-cm-einseitig-40farbig-bedruckt.html"
+
+
+def fetch_wmd_181(fmt):
+    """Auflagen-Select wie bei den Hohlkammerplakaten; die erste Liste ist 'Alle Plakate gleiches Motiv'."""
+    r = session.get(WMD181_URL, timeout=TIMEOUT)
+    r.raise_for_status()
+    prices = {}
+    for qty_s, net_s in re.findall(r"([\d.]+) Stück \(([\d.,]+) Euro netto\)", r.text):
+        prices.setdefault(int(qty_s.replace(".", "")), de_number(net_s))
+    out = [item("wmd", fmt, "120 g Affichenpapier Blueback", q, prices[q], prices[q] * VAT, WMD181_URL)
+           for q in QTYS_181 if q in prices]
+    if not out:
+        raise RuntimeError("Auflagenliste nicht gefunden")
+    return out
+
+
+MX181_URL = "https://maxxprint.de/18-1-plakate?number=18_1"
+MX181_VARIANT = "https://maxxprint.de/18-1-plakate"
+# group[13] Maße 356 x 252 cm, group[56] 4er-Teilung, group[28] verklebefertig gemappt, group[68] Standardversand
+MX181_GROUPS = {"13": "696", "56": "698", "28": "1193", "68": "1483"}
+MX181_MAX = 50  # online höchstens 50 Stück je Motiv
+
+
+def fetch_mx_181(fmt):
+    params = {f"group[{g}]": v for g, v in MX181_GROUPS.items()}
+    params.update({"input-product-motive": "1", "input-product-auflage": "1", "template": "ajax"})
+    page = session.get(MX181_VARIANT, params=params, timeout=TIMEOUT)
+    page.raise_for_status()
+
+    def option(value):
+        m = re.search(rf'value="{value}"[^>]*?data-maxx_price_rule="([^"]*)"[^>]*?data-maxx_surcharge_once="([^"]*)"', page.text)
+        if not m:
+            raise RuntimeError(f"Preisregel für Option {value} nicht gefunden")
+        return m.group(1), m.group(2)
+
+    # Reihenfolge wie im Shop: Regeln der gewählten Optionen, Stückregel, Artikelregel, Einmalzuschläge, Versand
+    opts = [option(MX181_GROUPS[g]) for g in ("13", "56", "28")]
+    ship_rule, _ = option(MX181_GROUPS["68"])
+    art = re.search(r'data-art_price_rule="([^"]*)"', page.text)
+    rules = [r for r, _ in opts if r] + ["multstueck{}", art.group(1) if art else "motive{3.00}"]
+    rules += [o for _, o in opts if o] + [ship_rule]
+    out = []
+    for qty in [q for q in QTYS_181 if q <= MX181_MAX]:
+        data = {"fictionalPrice": "false", "basePrice": "0", "anzahl": str(qty), "motive": "1", "auflage": str(qty),
+                "width": "3560", "height": "2520", "unit": "mm", "sender": "skycoPriceBox"}
+        data.update({f"priceRule-{i}": rule for i, rule in enumerate(rules)})
+        r = session.post(MX_EVAL, data=data, timeout=TIMEOUT, headers={"X-Requested-With": "XMLHttpRequest", "Referer": MX181_URL})
+        r.raise_for_status()
+        net = sum(float(t["res"]) for t in r.json()["data"]["trackback"])  # inkl. Versand
+        out.append(item("mx", fmt, "115 g Blueback-Affichenpapier", qty, net, net * VAT, MX181_URL,
+                        ["4 Teile, verklebefertig gemappt"]))
+    return out
+
+
+BK181_URL = "https://www.bannerkoenig.de/shop/18-1-grossflaechenplakat/"
+BK181_NOTES = ["Versand: nur Mindestbetrag 6,90 € eingerechnet"]
+
+
+def fetch_bk_181(fmt):
+    page = session.get(BK181_URL, timeout=TIMEOUT)
+    page.raise_for_status()
+    m = re.search(r'bkcmz_core_ajax\s*=\s*\{[^}]*"nonce":"([a-f0-9]+)"', page.text)
+    if not m:
+        raise RuntimeError("Nonce nicht gefunden")
+    out = []
+    for qty in QTYS_181:
+        data = {"product_id": "2593015", "erp_cpo_material": "blueback_affichenpapier", "erp_cpo_druck": "einseitiger_druck",
+                "erp_cpo_groesse": "18_1_356x252cm", "erp_cpo_menge": str(qty)}
+        r = session.post(BK_CALC, params={"bkcmz_perform_calculations": "1", "nonce": m.group(1)}, data=data,
+                         timeout=TIMEOUT, headers={"Referer": BK181_URL})
+        r.raise_for_status()
+        j = r.json()
+        if not j.get("success"):
+            raise RuntimeError(f"Berechnung fehlgeschlagen für {qty} Stück")
+        net = float(j["data"]["price_netto"]) + BK_SHIP_MIN_NET
+        out.append(item("bk", fmt, "120 g Blueback-Affichenpapier", qty, net, net * VAT, BK181_URL, BK181_NOTES))
+    return out
+
+
+MD181_URL = "https://www.mydisplays.net/affichen-papier"
+MD181_TEMPLATE = 3931  # Affichenpapier im Freiformat
+MD181_FIXED = [592, 571, 531, 316]  # Konfektion, 130 g Plakatpapier Blueback, Rolle, Basis-Datencheck
+MD181_KG_EACH = 1.17  # 8,97 m² x 130 g/m², geschätzt
+MD181_NOTES = ["Freiformat 356 × 252 cm, in Bahnen bis 130 cm gedruckt", "Versand geschätzt (9,90 € je 30-kg-Paket)"]
+
+
+def fetch_md_181(fmt):
+    out = []
+    for qty in QTYS_181:
+        payload = {"id": 1, "jsonrpc": "2.0", "method": "call", "params": {
+            "product_id": MD181_TEMPLATE, "selected_ids": MD181_FIXED,
+            "custom_values": {"52": str(qty), "57": "356", "58": "252", "56": "1", "93": False}}}
+        r = session.post(MD_API, json=payload, timeout=TIMEOUT, headers={"Referer": MD181_URL})
+        r.raise_for_status()
+        res = r.json().get("result")
+        if not res:
+            raise RuntimeError(f"keine Antwort für {qty} Stück")
+        goods = float(res["prices"]["price"])
+        ship = math.ceil(qty * MD181_KG_EACH / 30) * MD_SHIP_PER_30KG
+        net = goods + ship
+        out.append(item("md", fmt, "130 g Affichenpapier Blueback", qty, net, net * VAT, MD181_URL, MD181_NOTES))
+    return out
+
+
 # --------------------------------------------------------------------------------- Main
 SHOPS = {
     "fla": fetch_fla,
@@ -447,10 +590,31 @@ SHOPS = {
     "bk": fetch_bk,
     "md": fetch_md,
 }
+SHOPS_181 = {
+    "fla": fetch_fla_181,
+    "wmd": fetch_wmd_181,
+    "h2p": fetch_h2p,
+    "wps": fetch_wps,
+    "mx": fetch_mx_181,
+    "bk": fetch_bk_181,
+    "md": fetch_md_181,
+}
+# Alle Abrufe: (Format, Shop, Funktion)
+JOBS = [(fmt, shop, fn) for fmt in FORMATS for shop, fn in SHOPS.items()] + [
+    (F181, shop, fn) for shop, fn in SHOPS_181.items()
+]
 
 
 def _na(shop, qty, reason, formats=("A1", "A0")):
     return [{"shop": shop, "format": f, "qty": qty, "reason": reason} for f in formats]
+
+
+def _na181(shop, reason):
+    return _na_all(shop, reason, QTYS_181, (F181,))
+
+
+def _na_all(shop, reason, qtys, formats):
+    return [e for q in qtys for e in _na(shop, q, reason, formats)]
 
 
 UNAVAILABLE = [
@@ -466,6 +630,11 @@ UNAVAILABLE = [
     *_na("mx", 1000, "online höchstens 100 Stück je Motiv"),
     *_na("mx", 5000, "online höchstens 100 Stück je Motiv"),
     *_na("mx", 10000, "online höchstens 100 Stück je Motiv"),
+    # 18/1-Großflächenplakate
+    *_na181("p24", "18/1 erst ab 100 Stück (Offsetdruck)"),
+    *_na181("sax", "kein 18/1-Plakat im Sortiment (höchstens DIN A0)"),
+    *_na181("dn", "kein 18/1-Plakat im Sortiment (Affichenpapier höchstens DIN A0)"),
+    *_na181("jjb", "kein 18/1-Plakat im Sortiment"),
 ]
 
 
@@ -492,27 +661,26 @@ def main() -> int:
     today = now.astimezone(ZoneInfo("Europe/Berlin")).date().isoformat()
 
     items, errors = [], []
-    for fmt in FORMATS:
-        for shop, fn in SHOPS.items():
-            try:
-                got = with_retries(fn, fmt, shop)
-                items.extend(got)
-                print(f"OK     {fmt} {shop}: {len(got)} Preise")
-            except Exception as exc:  # noqa: BLE001 – ein Shop darf die anderen nicht stoppen
-                traceback.print_exc()
-                errors.append({"shop": shop, "format": fmt, "message": str(exc)[:300]})
-                old = [
-                    i for i in (previous or {}).get("items", [])
-                    if i["shop"] == shop and i.get("format", "A1") == fmt
-                ]
-                stale = "Abruf fehlgeschlagen, Preis vom letzten Datenstand"
-                for i in old:
-                    i = dict(i, format=fmt)
-                    i["notes"] = [n for n in i.get("notes", []) if n != stale] + [stale]
-                    items.append(i)
-                print(f"FEHLER {fmt} {shop}: {exc} (übernehme {len(old)} alte Preise)")
+    for fmt, shop, fn in JOBS:
+        try:
+            got = with_retries(fn, fmt, shop)
+            items.extend(got)
+            print(f"OK     {fmt} {shop}: {len(got)} Preise")
+        except Exception as exc:  # noqa: BLE001 – ein Shop darf die anderen nicht stoppen
+            traceback.print_exc()
+            errors.append({"shop": shop, "format": fmt, "message": str(exc)[:300]})
+            old = [
+                i for i in (previous or {}).get("items", [])
+                if i["shop"] == shop and i.get("format", "A1") == fmt
+            ]
+            stale = "Abruf fehlgeschlagen, Preis vom letzten Datenstand"
+            for i in old:
+                i = dict(i, format=fmt)
+                i["notes"] = [n for n in i.get("notes", []) if n != stale] + [stale]
+                items.append(i)
+            print(f"FEHLER {fmt} {shop}: {exc} (übernehme {len(old)} alte Preise)")
 
-    if len(errors) == len(SHOPS) * len(FORMATS):
+    if len(errors) == len(JOBS):
         print("Alle Abfragen fehlgeschlagen, Datei bleibt unverändert.")
         return 1
 
